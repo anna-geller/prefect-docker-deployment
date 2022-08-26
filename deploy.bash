@@ -13,6 +13,6 @@ prefect deployment build flows/healthcheck.py:healthcheck -n prod -ib docker-con
 prefect deployment run df/prod
 prefect deployment run healthcheck/prod
 
-# MANUAL STEP default infra block
+# default infra block
 prefect deployment build flows/healthcheck.py:healthcheck -n default --infra docker-container -q prod --skip-upload -o deploy/docker.yaml --path /opt/prefect/flows --override image=$IMAGE --apply
 prefect deployment run healthcheck/default
