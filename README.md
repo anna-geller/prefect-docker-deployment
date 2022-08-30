@@ -1,2 +1,2 @@
-# prefect-docker-deployment
-How to use Prefect Deployments with flow code baked into a Docker image
+# Prefect deployments with flows defined in Docker images
+Demo showing how to use Prefect deployments with flow code baked into a Docker image
