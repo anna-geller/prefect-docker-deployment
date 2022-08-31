@@ -14,10 +14,15 @@ prefect deployment run df/prod
 prefect deployment build flows/healthcheck.py:healthcheck -n default -q prod --infra docker-container --override image=$IMAGE --apply
 prefect deployment run healthcheck/default
 
-# optional: push to DockerHub, either as shown below or using https://github.com/anna-geller/dataflow-ops/blob/main/.github/workflows/docker_image.yaml
+# optional: push to public DockerHub, either as shown below or using https://github.com/anna-geller/dataflow-ops/blob/main/.github/workflows/docker_image.yaml
 docker login -u annaprefect
 docker image tag dataflowops:latest annaprefect/dataflowops:latest
 docker image push annaprefect/dataflowops:latest
 
 prefect deployment build flows/healthcheck.py:healthcheck -n dockerhub -q prod --infra docker-container --override image=annaprefect/dataflowops:latest --apply
 prefect deployment run healthcheck/dockerhub
+
+# custom infra block for a public DockerHub image
+python blocks/dockerhub_block.py
+prefect deployment build flows/healthcheck.py:healthcheck -n prod -q prod -ib docker-container/prod --apply
+prefect deployment run healthcheck/prod
