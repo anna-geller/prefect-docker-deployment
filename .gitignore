@@ -133,4 +133,4 @@ dmypy.json
 .vscode/
 .tmp/
 deploy/
-*.yaml
+*deployment.yaml

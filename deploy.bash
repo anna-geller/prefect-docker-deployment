@@ -24,5 +24,6 @@ prefect deployment run healthcheck/dockerhub
 
 # custom infra block for a public DockerHub image
 python blocks/dockerhub_block.py
-prefect deployment build flows/healthcheck.py:healthcheck -n prod -q prod -ib docker-container/prod --apply
-prefect deployment run healthcheck/prod
+prefect deployment build flows/healthcheck.py:healthcheck -n dockerqa -q prod -ib docker-container/prod --apply
+prefect deployment run healthcheck/dockerqa
+
