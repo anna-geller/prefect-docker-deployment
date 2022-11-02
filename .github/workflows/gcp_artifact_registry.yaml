@@ -4,8 +4,8 @@ on:
 
 env:
   PROJECT_ID: prefect-community
-  GAR_LOCATION: us-east1-docker.pkg.dev/prefect-community/sls
-  SERVICE: prefect
+  GAR_LOCATION: us-east1
+  SERVICE: sls
   REGION: us-east1
 
 jobs:
