@@ -71,8 +71,8 @@ jobs:
           service: prefect-agent
           image: ${{ steps.build-image.outputs.image }}
           secrets: |
-            PREFECT_API_KEY:latest=${{ secrets.PREFECT_API_KEY }}
-            PREFECT_API_URL:latest=${{ secrets.PREFECT_API_URL }}
+            PREFECT_API_KEY=${{ secrets.PREFECT_API_KEY }}:latest
+            PREFECT_API_URL=${{ secrets.PREFECT_API_URL }}:latest
 
       - name: Output URL
         run: curl "${{ steps.deploy.outputs.url }}"
