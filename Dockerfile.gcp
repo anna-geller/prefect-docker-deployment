@@ -1,2 +1,2 @@
 FROM prefecthq/prefect:2.6.7-python3.10
-RUN pip install gcsfs Faker
+RUN pip install gcsfs Faker  --trusted-host pypi.python.org --no-cache-dir
