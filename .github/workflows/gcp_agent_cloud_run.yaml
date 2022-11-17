@@ -17,6 +17,11 @@ on:
         required: true
         default: 'us-east1'
         type: string
+      service_name:
+        description: Cloud Run service name
+        required: true
+        default: 'prefect-agent'
+        type: string
       ar_repository:
         description: Artifact Registry Repository
         required: true
@@ -27,7 +32,7 @@ env:
   PROJECT: ${{ github.event.inputs.gcp_project_id }}
   REPO: ${{ github.event.inputs.ar_repository }}
   REGION: ${{ github.event.inputs.region }}
-  SERVICE: prefect
+  SERVICE: ${{ github.event.inputs.service_name }}
   PREFECT_VERSION: ${{ github.event.inputs.prefect-version }}
 
 jobs:
@@ -63,7 +68,7 @@ jobs:
       - id: deploy
         uses: google-github-actions/deploy-cloudrun@v0.10.1
         with:
-          service: $SERVICE
+          service: {{ env.SERVICE }}
           image: ${{ steps.build-image.outputs.image }}
           secrets: |
             PREFECT_API_KEY=${{ secrets.PREFECT_API_KEY }}
