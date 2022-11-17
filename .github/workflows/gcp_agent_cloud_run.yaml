@@ -1,4 +1,4 @@
-name: Cloud Run Agent
+name: GCP Cloud Run Agent
 
 on:
   workflow_dispatch:
@@ -56,7 +56,7 @@ jobs:
 
      - name: Google Auth
        id: auth
-       uses: 'google-github-actions/auth@v1'
+       uses: google-github-actions/auth@v1
        with:
          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
