@@ -71,7 +71,8 @@ jobs:
           export IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:latest"
           docker build -t $IMAGE -f Dockerfile.gcp .
           docker push $IMAGE
-          echo "::set-output name=image::$IMAGE"
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+#          echo "::set-output name=image::$IMAGE"
 #      - name: Build and Push Container
 #        run: |-
 #          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:${{ github.sha }}" -f Dockerfile.gcp .
@@ -114,3 +115,5 @@ jobs:
           crj.save(block_, overwrite=True)
           EOF
           python blocks.py
+      - name: Run deployment
+        run: prefect deployment run smart/dev
