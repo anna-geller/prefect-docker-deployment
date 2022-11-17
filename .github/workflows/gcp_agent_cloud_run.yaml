@@ -65,14 +65,28 @@ jobs:
         with:
           credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
+      - name: Create PREFECT_API_KEY GCP secret key
+        run: gcloud secrets create prefectapikey --replication-policy="automatic" --project prefect-community
+        continue-on-error: true
+
+      - name: Create PREFECT_API_URL GCP secret key
+        run: gcloud secrets create prefectapiurl --replication-policy="automatic" --project prefect-community
+        continue-on-error: true
+
+      - name: Create PREFECT_API_KEY GCP secret value
+        run: echo -n "${{ secrets.PREFECT_API_KEY }}" | gcloud secrets versions add prefectapikey --data-file=- --project prefect-community
+
+      - name: Create PREFECT_API_URL GCP secret value
+        run: echo -n "${{ secrets.PREFECT_API_URL }}" | gcloud secrets versions add prefectapiurl --data-file=- --project prefect-community
+
       - id: deploy
         uses: google-github-actions/deploy-cloudrun@v0.10.1
         with:
           service: prefect-agent
           image: ${{ steps.build-image.outputs.image }}
           secrets: |
-            PREFECT_API_KEY=${{ secrets.PREFECT_API_KEY }}:latest
-            PREFECT_API_URL=${{ secrets.PREFECT_API_URL }}:latest
+            PREFECT_API_KEY=prefectapikey:latest
+            PREFECT_API_URL=prefectapiurl:latest
 
       - name: Output URL
         run: curl "${{ steps.deploy.outputs.url }}"
