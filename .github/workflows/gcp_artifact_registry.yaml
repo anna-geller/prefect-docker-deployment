@@ -23,6 +23,10 @@ on:
         description: Name of the GCS and Cloud Run blocks
         required: true
         default: 'default'
+      gcp_project_id:
+        description: Name of the GCP project ID
+        required: true
+        default: 'prefect-community'      
       prefect-version:
         description: Prefect version for flows
         required: true
@@ -40,10 +44,9 @@ on:
         type: string
 
 env:
-  PROJECT_ID: prefect-community
-  AR_REPOSITORY: ${{ github.event.inputs.ar_repository }}
+  PROJECT: ${{ github.event.inputs.gcp_project_id }}
+  REPO: ${{ github.event.inputs.ar_repository }}
   REGION: ${{ github.event.inputs.region }}
-  GCS_PATH: ${{ github.event.inputs.gcs_path }}
   SERVICE: prefect
 
 jobs:
@@ -60,58 +63,46 @@ jobs:
           username: _json_key
           password: ${{ secrets.GCP_CREDENTIALS }}
 
-#      - name: Build and Push Container
-#        run: |-
-#          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPOSITORY }}/prefect:latest" -f Dockerfile.gcp .
-#          docker push "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPOSITORY }}/prefect:latest"
-
       - name: Build and Push Container
         run: |-
-          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPOSITORY }}/prefect:${{ github.sha }}" -f Dockerfile.gcp .
-          docker push "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPOSITORY }}/prefect:${{ github.sha }}"
+          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:latest" -f Dockerfile.gcp .
+          docker push "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:latest"
 
-#      - name: Create Blocks
-#        id: gcp_blocks
-#        run: |
-#          cat <<EOF > gcp_blocks.py
-#          from prefect_gcp.cloud_run import CloudRunJob
-#          from prefect_gcp.credentials import GcpCredentials
-#          from prefect.filesystems import GCS
-#
-#          sa = "${{ secrets.GCP_CREDENTIALS }}"
-#
-#          creds = GcpCredentials(service_account_info=sa)
-#          gcs = GCS(service_account_info=sa, bucket_path="prefect-orion/flows")
-#
-#          id_ = "${{ secrets.AWS_ACCESS_KEY_ID }}"
-#          key_ = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-#          path_ = "${{ github.event.inputs.gcs_path }}"
-#          img_ = "${{ needs.ecr-repo.outputs.image }}"
-#          block_ = "$BLOCK"
-#          cluster_ = "${{ env.ECS_CLUSTER }}"
-#          cpu_ = "${{ github.event.inputs.cpu }}"
-#          memory_ = "${{ github.event.inputs.memory }}"
-#          aws_acc_id = "$AWS_ACCOUNT_ID"
-#          exec_role = f"arn:aws:iam::{aws_acc_id}:role/dataflowops_ecs_execution_role"
-#          task_role = f"arn:aws:iam::{aws_acc_id}:role/dataflowops_ecs_execution_role"
-#
-#          aws_creds = AwsCredentials(aws_access_key_id=id_, aws_secret_access_key=key_)
-#          aws_creds.save(block_, overwrite=True)
-#
-#          gcs = GCS(bucket_path=path_, aws_access_key_id=id_, aws_secret_access_key=key_)
-#          gcs.save(block_, overwrite=True)
-#
-#          ecs = ECSTask(
-#              aws_credentials=aws_creds,
-#              image=img_,
-#              cpu=cpu_,
-#              memory=memory_,
-#              stream_output=True,
-#              configure_cloudwatch_logs=True,
-#              cluster=cluster_,
-#              execution_role_arn=exec_role,
-#              task_role_arn=task_role,
-#          )
-#          ecs.save(block_, overwrite=True)
-#          EOF
-#          python aws_ecs_blocks.py
+#      - name: Build and Push Container
+#        run: |-
+#          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:${{ github.sha }}" -f Dockerfile.gcp .
+#          docker push "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:${{ github.sha }}"
+
+      - name: Create Blocks
+        id: blocks
+        run: |
+          cat <<EOF > blocks.py
+          from prefect_gcp.cloud_run import CloudRunJob
+          from prefect_gcp.credentials import GcpCredentials
+          from prefect.filesystems import GCS
+
+          sa_ = "${{ secrets.GCP_CREDENTIALS }}"
+          block_ = "${{ github.event.inputs.block_name }}"
+          path_ = "${{ github.event.inputs.gcs_path }}"
+          cpu_ = "${{ github.event.inputs.cpu }}"
+          memory_ = "${{ github.event.inputs.memory }}"
+
+          creds = GcpCredentials(service_account_info=sa_)
+          creds.save(block_, overwrite=True)
+          gcs = GCS(service_account_info=sa_, bucket_path=path_)
+          gcs.save(block_, overwrite=True)
+
+          
+          img_ = "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:latest"
+          cpu_ = "${{ github.event.inputs.cpu }}"
+          memory_ = "${{ github.event.inputs.memory }}"
+          
+          crj = CloudRunJob(
+              image=img_,
+              region="$REGION",
+              credentials=GcpCredentials.load(block_),
+              cpu=cpu_,
+            )
+          crj.save(block_, overwrite=True)
+          EOF
+          python blocks.py
