@@ -1,2 +1,2 @@
 FROM prefecthq/prefect:2.6.7-python3.10
-RUN pip install gcsfs
+RUN pip install gcsfs Faker
