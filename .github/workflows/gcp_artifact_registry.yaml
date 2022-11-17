@@ -4,17 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       cpu:
-        description: CPU for the agent
+        description: CPU for the infra block
         required: true
-        default: '512'
-        type: choice
-        options: ['256', '512', '1024', '2048', '4096']
+        default: 1
+        type: integer
       memory:
-        description: Memory for the agent
+        description: Memory for the infra block
         required: true
-        default: '1024'
-        type: choice
-        options: ['512', '1024', '2048', '4096', '5120', '6144', '7168', '8192']
+        default: 512
+        type: integer
+#        options: ['512', '1024', '2048', '4096', '5120', '6144', '7168', '8192']
       gcs_path:
         description: GCS path in the format bucket/path
         required: true
@@ -48,10 +47,13 @@ env:
   REPO: ${{ github.event.inputs.ar_repository }}
   REGION: ${{ github.event.inputs.region }}
   SERVICE: prefect
+  PREFECT_VERSION: ${{ github.event.inputs.prefect-version }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -63,15 +65,31 @@ jobs:
           username: _json_key
           password: ${{ secrets.GCP_CREDENTIALS }}
 
-      - name: Build and Push Container
+      - name: Build and Push Docker Image
+        id: build-image
         run: |-
-          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:latest" -f Dockerfile.gcp .
-          docker push "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:latest"
-
+          export IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:latest"
+          docker build -t $IMAGE -f Dockerfile.gcp .
+          docker push $IMAGE
+          echo "::set-output name=image::$IMAGE"
 #      - name: Build and Push Container
 #        run: |-
 #          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:${{ github.sha }}" -f Dockerfile.gcp .
 #          docker push "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:${{ github.sha }}"
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Python dependencies
+        run: |
+          pip install prefect==$PREFECT_VERSION
+          pip install prefect-gcp
+
+      - name: Prefect Cloud login
+        run: |
+          prefect config set PREFECT_API_KEY=${{ secrets.PREFECT_API_KEY }}
+          prefect config set PREFECT_API_URL=${{ secrets.PREFECT_API_URL }}
 
       - name: Create Blocks
         id: blocks
@@ -79,29 +97,19 @@ jobs:
           cat <<EOF > blocks.py
           from prefect_gcp.cloud_run import CloudRunJob
           from prefect_gcp.credentials import GcpCredentials
-          from prefect.filesystems import GCS
-
-          sa_ = "${{ secrets.GCP_CREDENTIALS }}"
-          block_ = "${{ github.event.inputs.block_name }}"
-          path_ = "${{ github.event.inputs.gcs_path }}"
-          cpu_ = "${{ github.event.inputs.cpu }}"
-          memory_ = "${{ github.event.inputs.memory }}"
-
-          creds = GcpCredentials(service_account_info=sa_)
-          creds.save(block_, overwrite=True)
-          gcs = GCS(service_account_info=sa_, bucket_path=path_)
-          gcs.save(block_, overwrite=True)
-
           
-          img_ = "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:latest"
+          block_ = "${{ github.event.inputs.block_name }}"
           cpu_ = "${{ github.event.inputs.cpu }}"
           memory_ = "${{ github.event.inputs.memory }}"
+          img_ = "${{ steps.build-image.outputs.image }}"
           
           crj = CloudRunJob(
               image=img_,
               region="$REGION",
               credentials=GcpCredentials.load(block_),
               cpu=cpu_,
+              memory=memory_,
+              memory_unit="Mi"
             )
           crj.save(block_, overwrite=True)
           EOF

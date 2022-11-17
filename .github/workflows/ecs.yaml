@@ -81,9 +81,10 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$PROJECT:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$PROJECT:$IMAGE_TAG
-          echo "::set-output name=image::$ECR_REGISTRY/$PROJECT:$IMAGE_TAG"
+          export IMAGE="$ECR_REGISTRY/$PROJECT:$IMAGE_TAG"
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          echo "::set-output name=image::$IMAGE"
 
       - name: Flow deployments finished
         run: echo "ECR image ${{ steps.build-image.outputs.image }} built at $(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_STEP_SUMMARY
