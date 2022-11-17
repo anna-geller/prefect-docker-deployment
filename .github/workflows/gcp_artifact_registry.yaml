@@ -52,6 +52,8 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -69,7 +71,7 @@ jobs:
           export IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:latest"
           docker build -t $IMAGE -f Dockerfile.gcp .
           docker push $IMAGE
-#          echo "::set-output name=image::$IMAGE"
+          echo "::set-output name=image::$IMAGE"
 #      - name: Build and Push Container
 #        run: |-
 #          docker build -t "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT }}/${{ env.REPO }}/prefect:${{ github.sha }}" -f Dockerfile.gcp .
@@ -77,7 +79,7 @@ jobs:
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10.8"
+          python-version: "3.10.6"
 
       - name: Python dependencies
         run: |
@@ -99,7 +101,7 @@ jobs:
           block_ = "${{ github.event.inputs.block_name }}"
           cpu_ = "${{ github.event.inputs.cpu }}"
           memory_ = "${{ github.event.inputs.memory }}"
-          img_ = "$IMAGE"
+          img_ = "${{ steps.build-image.outputs.image }}"
           
           crj = CloudRunJob(
               image=img_,
@@ -112,5 +114,3 @@ jobs:
           crj.save(block_, overwrite=True)
           EOF
           python blocks.py
-      - name: Run deployment
-        run: prefect deployment run smart/dev
