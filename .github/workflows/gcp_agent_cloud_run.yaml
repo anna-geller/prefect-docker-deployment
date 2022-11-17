@@ -31,7 +31,7 @@ env:
   PREFECT_VERSION: ${{ github.event.inputs.prefect-version }}
 
 jobs:
-  prefect:
+  agent:
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.build-image.outputs.image }}
@@ -54,11 +54,11 @@ jobs:
           docker push $IMAGE
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
-     - name: Google Auth
-       id: auth
-       uses: google-github-actions/auth@v1
-       with:
-         credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
       - id: deploy
         uses: google-github-actions/deploy-cloudrun@v0.10.1
